@@ -1,5 +1,10 @@
 var localFile, reader;
 
+var	Hour = new Timespan("Hour",1/24);
+var	Day = new Timespan("Day",1);
+var	Week = new Timespan("Week",7);
+var	Month = new Timespan("Month",30);
+var timespans = [Month, Week, Day, Hour];
 
 function updateJson(data) {
     $('#status').text(data.last_status);
@@ -10,8 +15,8 @@ function updateJson(data) {
     table.empty();
     for (var i = rowCount - 1; i >=0; i--) {
         table.append($('<tr/>').append($('<td colspan="2" />').text(data.log[i])));
-    } 
-    
+    }
+
     updateRawValues(data.raw_data);
 }
 
@@ -31,64 +36,59 @@ function updateRawValues(rawData){
 
         if(!isNaN(averageLendingRate) && !isNaN(lentSum) || !isNaN(totalCoins))
         {
-        
+
             // cover cases where totalCoins isn't updated because all coins are lent
             if(isNaN(totalCoins) && !isNaN(lentSum)) {
                 totalCoins = lentSum;
             }
             var rate = +averageLendingRate  * 0.85 / 100; // 15% goes to Poloniex fees
-            
-            var earnHourly = (+lentSum * +rate) / 24;
-            earnHourly = isNaN(earnHourly) ? 0 : earnHourly;
-            var earnDaily = (+lentSum * +rate);
-            var earnWeekly = (+lentSum * +rate) * 7;               
-            var earnMonthly = (+lentSum * +rate) * 30;
-            
-            var earnings = roundFloat(earnMonthly, 100000000) + " "+currency+" / Month<br/>"
-                    + roundFloat(earnWeekly, 100000000) + " "+currency+" / Week<br/>"
-                    + roundFloat(earnDaily, 100000000) + " "+currency+" / Day<br/>";
-            if(currency == 'BTC') {
-                earnings += Math.round(earnHourly * 100000000) + " Satoshi / Hour<br/>";                        
-            } else {
-                earnings += roundFloat(earnHourly, 100000000) + " "+currency+" / Hour<br/>";
-            }
-                    
-                    
+
+			var earnings = '';
+			var earningsBTC = '';
+			timespans.forEach(function(timespan) {
+				// calculare coin earnings
+				timespanEarning = timespan.calcEarnings(currency, lentSum, rate);
+				earnings += timespan.formatEarnings(currency, timespanEarning);
+				// calculare BTC earnings
+				if(!isNaN(highestBidBTC)) {
+					timespanEarningBTC = timespan.calcEarnings("BTC", lentSum * highestBidBTC, rate);
+					earningsBTC += timespan.formatEarnings("BTC", timespanEarningBTC);
+				}
+			});
+
+
             var effectiveRate = lentSum * rate * 100 / totalCoins;
-            
+
             var rowValues = [currency,
                 roundFloat(lentSum, 10000) + ' ' + currency,
                 roundFloat(averageLendingRate, 100000)  + '%',
                 roundFloat(totalCoins, 10000)  + ' ' + currency,
                 roundFloat(effectiveRate, 100000) + '%' ]
 
+			// print coin status
             var row = table.insertRow();
-            
             for (var i = 0; i < rowValues.length; ++i) {
                 var cell = row.appendChild(document.createElement("td"));
                 cell.innerHTML = rowValues[i];
             }
-            
-            // add earnings
-            var row = table.insertRow();
-            
+
+
             var earningsColspan = rowValues.length - 1;
-            var earningsBTC;
+
+			// adjust coin earnings table cell span for BTC earnings
             if(!isNaN(highestBidBTC)) {
-                earningsBTC = roundFloat(earnMonthly * highestBidBTC, 100000000) + " BTC / Month<br/>"
-                    + roundFloat(earnWeekly * highestBidBTC, 100000000) + " BTC / Week<br/>"
-                    + roundFloat(earnDaily * highestBidBTC, 100000000) + " BTC / Day<br/>"
-                    + Math.round(earnHourly * highestBidBTC * 100000000) + " Satoshi / Hour<br/>";
-                    
-                earningsColspan = Math.round(earningsColspan / 2);                                                
+                earningsColspan = Math.round(earningsColspan / 2);
             }
-            
+
+            // print coin earnings
+			var row = table.insertRow();
             var cell = row.appendChild(document.createElement("td"));
             cell.innerHTML = "<b>"+ currency +"<br/>Estimated<br/>Earnings<b>";
             cell = row.appendChild(document.createElement("td"));
             cell.setAttribute("colspan", earningsColspan);
             cell.innerHTML = earnings;
-            
+
+			// print coin BTC earnings
             if(!isNaN(highestBidBTC)) {
                 var cell = row.appendChild(document.createElement("td"));
                     cell.innerHTML = "<b>"+ couple +"<br/>highest bid:<br/>"+ highestBidBTC +"<b>";
@@ -114,10 +114,10 @@ function loadData() {
     if(localFile) {
         reader.readAsText(localFile, 'utf-8');
         setTimeout('loadData()',30000)
-    } else {            
+    } else {
         // expect the botlog.json to be in the same folder on the webserver
-        var file = 'botlog.json';            
-        $.getJSON(file, function (data) {               
+        var file = 'botlog.json';
+        $.getJSON(file, function (data) {
             updateJson(data);
             // reload every 30sec
             setTimeout('loadData()',30000)
@@ -126,12 +126,31 @@ function loadData() {
            // retry after 60sec
            setTimeout('loadData()',60000)
         });;
-    }            
+    }
 }
 
 function roundFloat(value, roundFigure) {
     var result = Math.round(value * roundFigure) / roundFigure;
     return result = isNaN(result) ? 0 : result;
+}
+
+function Timespan(name, multiplier) {
+    this.name = name;
+    this.multiplier = multiplier;
+	this.calcEarnings = function(currency, sum, rate) {
+		if(currency == "BTC" && this == Hour) {
+			return Math.round(sum * 100000000 * rate * this.multiplier);
+		} else {
+			return roundFloat(sum * rate * this.multiplier, 100000000);
+		}
+	};
+	this.formatEarnings = function(currency, earnings) {
+		if(currency == "BTC" && this == Hour) {
+			return earnings + " Satoshi / Hour<br/>";
+		} else {
+			return earnings + " " + currency + " / " + name + "<br/>";
+		}
+	};
 }
 
 $(document).ready(function () {

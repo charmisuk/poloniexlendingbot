@@ -170,21 +170,23 @@
 <body>
 
     <!-- Page Content -->
-    <div class="container">
+    <div class="container-fluid">
       <div class="row">
-        <div class="panel-heading" style="background-color:#f2f2f2" >
-          <h4>
-            Poloniex Lending Bot
-          </h4>
-          <input type="file" id="file" name="file" style="display:none"  onchange="handleLocalFile(this.files[0])" />
+        <div class="panel-heading" style="background-color:#f2f2f2;display:flex;padding:0px" >
+          <div class="col-xs-6">
+              <h4>
+                Poloniex Lending Bot
+              </h4>
+              <input type="file" id="file" name="file" style="display:none"  onchange="handleLocalFile(this.files[0])" />
+          </div>
+          <div class="col-xs-6" style="text-align:right;margin: auto 0;" >
+            <span id="updated">Not updated</span>
+          </div>
         </div>
       </div>
       <div class="row" style="overflow-x:auto">
         <table class="table table-responsive">
             <thead>
-                <tr>
-                    <th>Updated</th><th id="updated">Not updated</th>
-                </tr>
                 <tr>
                     <th style="vertical-align: text-top;">Status</th><th style="vertical-align: text-top;" id="status">N/A</th>
                 </tr>

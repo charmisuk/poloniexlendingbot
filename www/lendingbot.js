@@ -51,14 +51,14 @@ function updateRawValues(rawData){
 					totalBTCEarnings[timespan.name] = 0;
 				}
 
-				// calculare coin earnings
+				// calculate coin earnings
 				timespanEarning = timespan.calcEarnings(lentSum, rate);
 				earnings += timespan.formatEarnings(currency, timespanEarning);
 				if(currency == 'BTC') {
 					totalBTCEarnings[timespan.name] += timespanEarning;
 				}
 
-				// calculare BTC earnings
+				// calculate BTC earnings
 				if(!isNaN(highestBidBTC)) {
 					timespanEarningBTC = timespan.calcEarnings(lentSum * highestBidBTC, rate);
 					earningsBTC += timespan.formatEarnings("BTC", timespanEarningBTC);
